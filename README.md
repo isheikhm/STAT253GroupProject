@@ -1,4 +1,4 @@
-# ikran_testrepo
+# STAT253GroupProject
 
 
 Hello.
