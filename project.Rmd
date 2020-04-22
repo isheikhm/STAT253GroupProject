@@ -1,0 +1,68 @@
+---
+title: "testtesttest"
+author: "Ikran Sheikh-Mursal"
+date: "4/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r, echo=FALSE}
+#plotting and exploring
+library(tidyverse) #for plotting and summarizing
+library(GGally) #for nice scatterplot matrix 
+library(ggridges) #for joy/ridge plots
+library(corrplot) #for basic correlation matrix plot
+library(naniar) #for exploring missing values
+library(pdp) #for partial dependence plots, MARS models
+library(rpart.plot) #for plotting decision trees
+library(vip) #for importance plots
+library(pROC) #for ROC curves
+library(plotROC) #for plotting ROC curves
+
+#making things look nice
+library(lubridate) #for nice dates
+library(knitr) #for nice tables
+library(scales) #for nice labels on graphs
+library(gridExtra) #for arranging plots
+library(broom) #for nice model output
+library(janitor) #for nice names
+
+#data
+library(ISLR) #for data
+library(moderndive) #for data
+library(rattle) #weather data
+
+#modeling
+library(rsample) #for splitting data
+library(recipes) #for keeping track of transformations
+library(caret) #for modeling
+library(leaps) #for variable selection
+library(glmnet) #for LASSO
+library(earth) #for MARS models
+library(rpart) #for decision trees
+library(randomForest) #for bagging and random forests
+
+theme_set(theme_minimal())
+```
+
+```{r}
+attrition <- read.csv("attrition.csv", fileEncoding="UTF-8-BOM")
+# names(attrition)
+```
+
+
+```{r}
+attrition %>%
+  # mutate(age_range <- cut(attrition$Age, 6)) %>%
+  ggplot(aes(x = Attrition, fill = cut(Age, 6))) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+attrition %>%
+  ggplot(aes(x=Attrition, fill=cut(YearsAtCompany, 8))) +
+  geom_bar(position = "fill")
+```
