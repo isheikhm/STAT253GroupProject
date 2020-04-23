@@ -50,19 +50,111 @@ theme_set(theme_minimal())
 
 ```{r}
 attrition <- read.csv("attrition.csv", fileEncoding="UTF-8-BOM")
-# names(attrition)
+names(attrition)
+
+
+#check if we have missing values
+attrition %>%
+  add_n_miss() %>%
+  arrange(desc(n_miss_all))
+
+attrition <- attrition %>% 
+mutate(WorkLifeBalance = fct_recode(as.factor(WorkLifeBalance),                                  Bad = "1", Good = "2", Better = "3", Best = "4"))
+
+#want to remove -0.04 from YearsAtCompany
+attrition %>%
+  arrange(YearsAtCompany)
+
+#split into training and testing
+set.seed(253)
+attrition_split <- initial_split(attrition, prop = .7)
+
+attrition_train <- training(attrition_split)
+attrition_test <- testing(attrition_split)
+
+
+
+#summarise response variable (proportions)
+table(attrition_train$Attrition) %>%
+  prop.table()
+```
+This dataset includes an 83.77% retention rate and a 16.23% attrition rate.
+
+#Potential research question: What factors may lead a potential employee to attrite?
+
+```{r}
+attrition_train %>%
+  # mutate(age_range <- cut(attrition$Age, 6)) %>%
+  ggplot(aes(x = Attrition, fill = cut(Age, 4))) +
+  geom_bar(position = "fill")
 ```
 
+```{r, eval = FALSE}
+attrition %>%
+  ggplot(aes(x=Attrition, fill=cut(YearsAtCompany, breaks = c(0,10,20,Inf), right = FALSE))) +
+  geom_bar(position = "fill") +
+  scale_fill_discrete("Years at Company and Attrition")
+```
+```{r}
+
+```
+
+
+```{r}
+#a different look at years at company and attrition
+attrition %>%
+  ggplot(aes(fill=Attrition, x=cut(YearsAtCompany, 4))) +
+  geom_bar(position = "fill")
+```
+
+
+```{r}
+#gender vs attrition
+attrition %>%
+  # mutate(age_range <- cut(attrition$Age, 6)) %>%
+  ggplot(aes(fill = Attrition, x = Gender)) +
+  geom_bar(position = "fill")
+```
+
+```{r}
+#work life balance vs attrition
+attrition %>%
+  # mutate(age_range <- cut(attrition$Age, 6)) %>%
+  ggplot(aes(fill = Attrition, x = WorkLifeBalance)) +
+  geom_bar(position = "fill")
+
+#WorkLifeBalance 
+#1 'Bad'
+#2 'Good'
+#3 'Better'
+#4 'Best'
+```
 
 ```{r}
 attrition %>%
   # mutate(age_range <- cut(attrition$Age, 6)) %>%
-  ggplot(aes(x = Attrition, fill = cut(Age, 6))) +
+  ggplot(aes(fill = Attrition, x = EnvironmentSatisfaction)) +
   geom_bar(position = "fill")
-```
 
+#1 'Low'
+#2 'Medium'
+#3 'High'
+#4 'Very High'
+```
 ```{r}
 attrition %>%
-  ggplot(aes(x=Attrition, fill=cut(YearsAtCompany, 8))) +
+  # mutate(age_range <- cut(attrition$Age, 6)) %>%
+  ggplot(aes(fill = Attrition, x = RelationshipSatisfaction)) +
   geom_bar(position = "fill")
 ```
+```{r}
+#overtime vs attrition
+attrition %>%
+  # mutate(age_range <- cut(attrition$Age, 6)) %>%
+  ggplot(aes(fill = Attrition, x = OverTime)) +
+  geom_bar(position = "fill")
+
+#potentially use in model
+```
+
+
