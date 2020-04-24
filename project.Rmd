@@ -1,5 +1,5 @@
 ---
-title: "testtesttest"
+title: "Project Checkpoint 1"
 author: "Ikran Sheikh-Mursal"
 date: "4/21/2020"
 output: html_document
