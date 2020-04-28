@@ -5,6 +5,7 @@ date: "4/21/2020"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
@@ -48,22 +49,22 @@ library(randomForest) #for bagging and random forests
 theme_set(theme_minimal())
 ```
 
-```{r}
+```{r, echo = FALSE}
 attrition <- read.csv("attrition.csv", fileEncoding="UTF-8-BOM")
 names(attrition)
 
 
-#check if we have missing values
-attrition %>%
-  add_n_miss() %>%
-  arrange(desc(n_miss_all))
+#check if we have missing values..
+# attrition %>%
+#   add_n_miss() %>%
+#   arrange(desc(n_miss_all))
 
 attrition <- attrition %>% 
 mutate(WorkLifeBalance = fct_recode(as.factor(WorkLifeBalance),                                  Bad = "1", Good = "2", Better = "3", Best = "4"))
 
 #want to remove -0.04 from YearsAtCompany
-attrition %>%
-  arrange(YearsAtCompany)
+# attrition %>%
+#   arrange(YearsAtCompany)
 
 #split into training and testing
 set.seed(253)
@@ -71,16 +72,16 @@ attrition_split <- initial_split(attrition, prop = .7)
 
 attrition_train <- training(attrition_split)
 attrition_test <- testing(attrition_split)
-
-
-
+```
+```{r}
 #summarise response variable (proportions)
 table(attrition_train$Attrition) %>%
   prop.table()
 ```
+
 This dataset includes an 83.77% retention rate and a 16.23% attrition rate.
 
-#Potential research question: What factors may lead a potential employee to attrite?
+##Potential research question: What factors may lead a potential employee to attrite?
 
 ```{r}
 attrition_train %>%
@@ -314,5 +315,5 @@ confusionMatrix(data = predict(attrition_tree, type = "raw"),
                 positive = "Yes") 
 
 #100 specificty??? 
-```
+``` 
 
