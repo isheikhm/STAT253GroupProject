@@ -234,7 +234,10 @@ confusionMatrix(data = predict(attrition_bestvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#Accuracy of 83.87% when fit on the top 5 best models. 
+#training Accuracy of 83.87% when fit on the top 5 best models.
+
+#CV accuracy
+attrition_bestvars$results$Accuracy
 ```
 
 
@@ -260,12 +263,16 @@ attrition_lasso <- train(
 
 ```
 
+#Potential best model
 ```{r}
+#training accuracy
 confusionMatrix(data = predict(attrition_lasso, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#accuracy for lambda--- what does that mean?
+#CV accuracy
+attrition_lasso$results %>%
+  filter(lambda == attrition_lasso$bestTune$lambda)
 ```
 
 
@@ -281,6 +288,24 @@ attrition_lasso$bestTune$lambda #Accuracy value of 0.881477
 attrition_lasso$resample %>% 
   summarize(avg_accuracy = mean(Accuracy))
 
+```
+```{r}
+#all vars lasso model with best lambda
+attrition_lasso_best <- train(
+    Attrition ~ .,
+    data = attrition_train %>% select(-Over18, -StandardHours),
+    method = "glmnet",
+    family = "binomial",
+    trControl = trainControl(method = "cv", number = 5),
+    tuneGrid = data.frame(alpha = 1, 
+                          lambda = 0.0005336699),
+    metric = "Accuracy",
+    na.action = na.omit
+)
+
+confusionMatrix(data = predict(attrition_lasso_best, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
 ```
 
 
@@ -306,6 +331,8 @@ attrition_tree <- train(
 attrition_tree$results%>%
   ggplot(aes(x = cp, y = Accuracy)) +
   geom_line()
+
+attrition_tree$bestTune
 ```
 
 
@@ -317,3 +344,34 @@ confusionMatrix(data = predict(attrition_tree, type = "raw"),
 #100 specificty??? 
 ``` 
 
+```{r}
+set.seed(253)
+
+attrition_tree_2 <- train(
+  Attrition ~ .,
+  data = attrition_train %>% select(-Over18, -StandardHours),
+  method = "rpart",
+  tuneGrid = data.frame(cp = 0.025),
+  trControl = trainControl(method = "cv", number = 5),
+  metric = "Accuracy",
+  na.action = na.omit
+)
+
+confusionMatrix(data = predict(attrition_tree_2, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
+
+attrition_train %>%
+  bind_cols(predict(attrition_tree_2, type = "prob")) %>%
+  mutate(Attrition_numeric = ifelse(Attrition == "Yes",1,0)) %>%
+  summarize(MSE = mean((Attrition_numeric-Yes)^2))
+#average squared error between actual and predicted probabilities
+
+
+attrition_train %>%
+  bind_cols(predict(attrition_tree_2, type = "prob")) %>%
+  ggplot(aes(x=Yes))+
+  geom_histogram()
+```
+
+#MSE
