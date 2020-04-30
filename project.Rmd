@@ -1,9 +1,10 @@
 ---
-title: "Project Checkpoint 1"
-author: "Ikran Sheikh-Mursal"
+title: "STATT253 Group Project"
+author: "Ikran, Colleen, Sebastian, Amritha"
 date: "4/21/2020"
 output: html_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
@@ -85,20 +86,9 @@ This dataset includes an 83.77% retention rate and a 16.23% attrition rate.
 ```{r}
 attrition_train %>%
   # mutate(age_range <- cut(attrition$Age, 6)) %>%
-  ggplot(aes(x = Attrition, fill = cut(Age, 4))) +
+  ggplot(aes(fill = Attrition , x = cut(Age,4))) +
   geom_bar(position = "fill")
 ```
-
-```{r, eval = FALSE}
-attrition %>%
-  ggplot(aes(x=Attrition, fill=cut(YearsAtCompany, breaks = c(0,10,20,Inf), right = FALSE))) +
-  geom_bar(position = "fill") +
-  scale_fill_discrete("Years at Company and Attrition")
-```
-```{r}
-
-```
-
 
 ```{r}
 #a different look at years at company and attrition
@@ -108,13 +98,6 @@ attrition %>%
 ```
 
 
-```{r}
-#gender vs attrition
-attrition %>%
-  # mutate(age_range <- cut(attrition$Age, 6)) %>%
-  ggplot(aes(fill = Attrition, x = Gender)) +
-  geom_bar(position = "fill")
-```
 
 ```{r}
 #work life balance vs attrition
@@ -141,12 +124,7 @@ attrition %>%
 #3 'High'
 #4 'Very High'
 ```
-```{r}
-attrition %>%
-  # mutate(age_range <- cut(attrition$Age, 6)) %>%
-  ggplot(aes(fill = Attrition, x = RelationshipSatisfaction)) +
-  geom_bar(position = "fill")
-```
+
 ```{r}
 #overtime vs attrition
 attrition %>%
@@ -157,4 +135,185 @@ attrition %>%
 #potentially use in model
 ```
 
+
+
+```{r}
+#Logistic Regression using all variables
+
+set.seed(253)
+
+# Perform logistic regression
+attrition_mod1 <- train(
+    Attrition ~ OverTime + YearsAtCompany + Age + WorkLifeBalance + EnvironmentSatisfaction ,
+    data = attrition_train,
+    method = "glm",
+    family = "binomial",
+    trControl = trainControl(method = "cv", number = 5),
+    metric = "Accuracy",
+    na.action = na.omit
+)
+
+summary(attrition_mod1) %>% 
+  coef() %>% 
+  tidy() %>% 
+  select(`.rownames`, Estimate) %>% 
+  mutate(exp_coef = exp(Estimate))
+
+#The odds of attriting increases by 315% when employees are working overtime. For every increase in Age, the odds of attrition decreases by 5% holding all other variables constant.
+
+#Those who worked overtime have 4.15 times the odds of attriting to those who don't work overtime. 
+```
+
+```{r}
+
+confusionMatrix(data = predict(attrition_mod1, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
+
+#Accuracy rate of 84.9%
+```
+
+
+```{r}
+#Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor. 
+
+set.seed(253)
+
+# Perform logistic regression
+attrition_allvars <- train(
+    Attrition ~ . ,
+    data = attrition_train %>% select(-Over18, -StandardHours),
+    method = "glm",
+    family = "binomial",
+    trControl = trainControl(method = "cv", number = 5),
+    metric = "Accuracy",
+    na.action = na.omit
+)
+
+summary(attrition_allvars) %>% 
+  coef() %>% 
+  tidy() %>% 
+  select(`.rownames`, Estimate) %>% 
+  mutate(exp_coef = exp(Estimate))
+```
+
+
+```{r}
+confusionMatrix(data = predict(attrition_allvars, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
+#Accuracy rate of 89% when the model fits all variables
+```
+
+
+```{r}
+
+vip(attrition_allvars$finalModel, num_features = 30, bar = FALSE)
+
+#The most important variables are medium and low grant values and having zero unsuccesssful grants.
+```
+
+```{r}
+#Ran a model using the top 5 best variables as shown in the Importance plot above.
+set.seed(253)
+
+
+attrition_bestvars <- train(
+    Attrition ~ OverTime + BusinessTravel + JobInvolvement + JobSatisfaction + EnvironmentSatisfaction  ,
+    data = attrition_train,
+    method = "glm",
+    family = "binomial",
+    trControl = trainControl(method = "cv", number = 5),
+    metric = "Accuracy",
+    na.action = na.omit
+)
+```
+
+```{r}
+confusionMatrix(data = predict(attrition_bestvars, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
+
+#Accuracy of 83.87% when fit on the top 5 best models. 
+```
+
+
+
+
+```{r}
+#
+set.seed(253)
+
+lambda_grid <- 10^seq(-4, 0, length = 100)
+
+attrition_lasso <- train(
+    Attrition ~ .,
+    data = attrition_train %>% select(-Over18, -StandardHours),
+    method = "glmnet",
+    family = "binomial",
+    trControl = trainControl(method = "cv", number = 5),
+    tuneGrid = data.frame(alpha = 1, 
+                          lambda = 10^seq(-4, 0, length = 100)),
+    metric = "Accuracy",
+    na.action = na.omit
+)
+
+```
+
+```{r}
+confusionMatrix(data = predict(attrition_lasso, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
+
+#accuracy for lambda--- what does that mean?
+```
+
+
+
+```{r}
+attrition_lasso$results %>% 
+  ggplot(aes(x = lambda, y = Accuracy)) +
+  geom_line() +
+  scale_x_log10() 
+
+attrition_lasso$bestTune$lambda #Accuracy value of 0.881477
+
+attrition_lasso$resample %>% 
+  summarize(avg_accuracy = mean(Accuracy))
+
+```
+
+
+
+```{r}
+#Classification Tree 
+
+set.seed(253)
+
+attrition_tree <- train(
+  Attrition ~ .,
+  data = attrition_train %>% select(-Over18, -StandardHours),
+  method = "rpart",
+  tuneGrid = data.frame(cp = 10^seq(-4, -1 , length = 100)),
+  trControl = trainControl(method = "cv", number = 5),
+  metric = "Accuracy",
+  na.action = na.omit
+)
+```
+
+
+```{r}
+attrition_tree$results%>%
+  ggplot(aes(x = cp, y = Accuracy)) +
+  geom_line()
+```
+
+
+```{r}
+confusionMatrix(data = predict(attrition_tree, type = "raw"),
+                reference = attrition_train$Attrition, 
+                positive = "Yes") 
+
+#100 specificty??? 
+``` 
 
