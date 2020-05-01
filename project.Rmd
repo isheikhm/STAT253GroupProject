@@ -138,11 +138,10 @@ attrition %>%
 
 
 ```{r}
-#Logistic Regression using all variables
+#first we did a logistic regression model with the variables that we built exploratory plots of
 
 set.seed(253)
 
-# Perform logistic regression
 attrition_mod1 <- train(
     Attrition ~ OverTime + YearsAtCompany + Age + WorkLifeBalance + EnvironmentSatisfaction ,
     data = attrition_train,
@@ -159,9 +158,7 @@ summary(attrition_mod1) %>%
   select(`.rownames`, Estimate) %>% 
   mutate(exp_coef = exp(Estimate))
 
-#The odds of attriting increases by 315% when employees are working overtime. For every increase in Age, the odds of attrition decreases by 5% holding all other variables constant.
-
-#Those who worked overtime have 4.15 times the odds of attriting to those who don't work overtime. 
+#Those who worked overtime have 4.15 times the odds of attriting than those who don't work overtime. 
 ```
 
 ```{r}
@@ -170,12 +167,18 @@ confusionMatrix(data = predict(attrition_mod1, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#Accuracy rate of 84.9%
+#Accuracy rate of 84.9%... BUT it isn't much better than the No Information Rate (predicting these by chance) of 83.6%...
+#we care more about the sensitivity, which is the percentage of correct predictions that people would leave their job out of all of the people who did end up leaving their job
+#sensitivity is .13
+#therefore, this model does not seem very good
+
+#CV accuracy of 84.5%
+attrition_mod1$results$Accuracy
 ```
 
 
 ```{r}
-#Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor. 
+#Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor, so they are meaningless in our model-building. 
 
 set.seed(253)
 
@@ -202,19 +205,22 @@ summary(attrition_allvars) %>%
 confusionMatrix(data = predict(attrition_allvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
-#Accuracy rate of 89% when the model fits all variables
+#training Accuracy rate of 89% when the model fits all variables
+#No information rate of 83.6%, so this model is slightly better
+#sensitivity is a lot better than the previous model, at 50.9%
+
+#CV accuracy of 87.5%
+attrition_allvars$results$Accuracy
 ```
 
 
 ```{r}
-
+#Now we made a variable importance plot to see what variables are most crucial to include in a model
 vip(attrition_allvars$finalModel, num_features = 30, bar = FALSE)
-
-#The most important variables are medium and low grant values and having zero unsuccesssful grants.
 ```
 
 ```{r}
-#Ran a model using the top 5 best variables as shown in the Importance plot above.
+#Ran a logistic regression model using the top 5 best variables as shown in the Importance plot above.
 set.seed(253)
 
 
@@ -234,9 +240,10 @@ confusionMatrix(data = predict(attrition_bestvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#training Accuracy of 83.87% when fit on the top 5 best models.
+#training Accuracy of 83.87% when fit on the top 5 best models.  Practically the same as the No information rate though...
+#sensitivity is 11.2%... pretty bad...
 
-#CV accuracy
+#CV accuracy is 84.5%
 attrition_bestvars$results$Accuracy
 ```
 
@@ -244,7 +251,7 @@ attrition_bestvars$results$Accuracy
 
 
 ```{r}
-#
+#now we try a lasso model, to see if it can penalize unimportant varibles and get the accuracy and sensitivity to be better
 set.seed(253)
 
 lambda_grid <- 10^seq(-4, 0, length = 100)
@@ -273,24 +280,30 @@ confusionMatrix(data = predict(attrition_lasso, type = "raw"),
 #CV accuracy
 attrition_lasso$results %>%
   filter(lambda == attrition_lasso$bestTune$lambda)
+
+#training accuracy is 90.1% (an improvement from the NIR of 83.6%!)
+#sensitivity is 50.3%
+
+#CV accuracy is 88.1% with a lambda value of 0.0005336699	
 ```
 
 
 
 ```{r}
+#plot of lambda values versus accuracy
 attrition_lasso$results %>% 
   ggplot(aes(x = lambda, y = Accuracy)) +
   geom_line() +
   scale_x_log10() 
 
-attrition_lasso$bestTune$lambda #Accuracy value of 0.881477
 
+#not sure why this is here...
 attrition_lasso$resample %>% 
   summarize(avg_accuracy = mean(Accuracy))
 
 ```
 ```{r}
-#all vars lasso model with best lambda
+#all vars lasso model with best lambda... but we don't rlly need this because it automatically chose the best lambda out of the range of lambdas in the model above... however, does just putting one value of lambda make
 attrition_lasso_best <- train(
     Attrition ~ .,
     data = attrition_train %>% select(-Over18, -StandardHours),
