@@ -5,7 +5,6 @@ date: "4/21/2020"
 output: html_document
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
@@ -48,6 +47,13 @@ library(randomForest) #for bagging and random forests
 
 theme_set(theme_minimal())
 ```
+1. -introduce data
+-introduce research question
+-include a graph that summarizes the response variable (i did this below)
+-maybe talk about variables we thought might be important in predicting attrition? idk
+-talk about data cleaning (hmm we only changed the number levels of WorkLifeBalance to Bad,Good,Better,Best right? We should probably do the same with environment satisfaction)
+
+
 
 ```{r, echo = FALSE}
 attrition <- read.csv("attrition.csv", fileEncoding="UTF-8-BOM")
@@ -77,11 +83,18 @@ attrition_test <- testing(attrition_split)
 #summarise response variable (proportions)
 table(attrition_train$Attrition) %>%
   prop.table()
+
+ggplot(data = attrition_train, aes(x=Attrition)) +
+  geom_bar(color = 'blue', fill = 'lightblue') +
+  ggtitle("Attrition in Training Dataset")
+
+#from this plot we can see that in our training dataset, there are many more cases in which the employee stayed at their job than ones who left it.
+
+#In the proportion table, we can see that 16.4% of the cases were ones who attrited, while 83.6% of the cases remained at their job.
 ```
 
-This dataset includes an 83.77% retention rate and a 16.23% attrition rate.
-
 ##Potential research question: What factors may lead a potential employee to attrite?
+
 
 ```{r}
 attrition_train %>%
@@ -268,6 +281,7 @@ attrition_lasso <- train(
     na.action = na.omit
 )
 
+attrition_lasso$results
 ```
 
 #Potential best model
@@ -303,7 +317,8 @@ attrition_lasso$resample %>%
 
 ```
 ```{r}
-#all vars lasso model with best lambda... but we don't rlly need this because it automatically chose the best lambda out of the range of lambdas in the model above... however, does just putting one value of lambda make
+#all vars lasso model with best lambda... but we don't rlly need this because it automatically chose the best lambda out of the range of lambdas in the model above... however, does just putting one value of lambda make it run faster? maybe we should keep this one instead..
+
 attrition_lasso_best <- train(
     Attrition ~ .,
     data = attrition_train %>% select(-Over18, -StandardHours),
@@ -320,11 +335,22 @@ confusionMatrix(data = predict(attrition_lasso_best, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 ```
+EXAMINE LASSO COEFFICIENTS TO SEE WHICH SHRUNK TO 0
+```{r}
+coefficients(attrition_lasso$finalModel,0.0005336699)
+#DepartmentSales, EmployeeCount, JobLevel, MonthlyIncome, and PerformanceRating all shrunk to 0.
+
+
+#variable importance plot on lasso model with the best lambda
+vip(attrition_lasso_best$finalModel, num_features = 30, bar = FALSE)
+
+#interesting! different variables are the most important this time around... should we try a lasso model with only the top 6-10 important variables, because the others are kinda close to 0? What do you think?
+```
 
 
 
 ```{r}
-#Classification Tree 
+#Classification Tree .... but the training accuracy is literally the same as the NIR and with the "best" cp value, it sorts ALL of the cases into the "No" category for attrition, so should we get rid of this?
 
 set.seed(253)
 
