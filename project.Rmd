@@ -34,6 +34,7 @@ library(janitor) #for nice names
 library(ISLR) #for data
 library(moderndive) #for data
 library(rattle) #weather data
+library(cluster)
 
 #modeling
 library(rsample) #for splitting data
@@ -66,7 +67,8 @@ names(attrition)
 #   arrange(desc(n_miss_all))
 
 attrition <- attrition %>% 
-mutate(WorkLifeBalance = fct_recode(as.factor(WorkLifeBalance),                                  Bad = "1", Good = "2", Better = "3", Best = "4"))
+mutate(WorkLifeBalance = fct_recode(as.factor(WorkLifeBalance), Bad = "1", Good = "2", Better = "3", Best = "4"),
+       EnvironmentSatisfaction = fct_recode(as.factor(EnvironmentSatisfaction), Low="1", Medium = "2", High = "3", `Very High` = "4"))
 
 #want to remove -0.04 from YearsAtCompany
 # attrition %>%
@@ -88,26 +90,35 @@ ggplot(data = attrition_train, aes(x=Attrition)) +
   geom_bar(color = 'blue', fill = 'lightblue') +
   ggtitle("Attrition in Training Dataset")
 
-#from this plot we can see that in our training dataset, there are many more cases in which the employee stayed at their job than ones who left it.
+# From this plot we can see that in our training dataset, there are many more cases in which the employee stayed at their job than ones who left it.
 
-#In the proportion table, we can see that 16.4% of the cases were ones who attrited, while 83.6% of the cases remained at their job.
+# In the proportion table, we can see that 16.4% of the cases were ones who attrited, while 83.6% of the cases remained at their job.
 ```
 
-##Potential research question: What factors may lead a potential employee to attrite?
+## Potential research question: What factors may lead a potential employee to attrite?
 
 
 ```{r}
 attrition_train %>%
   # mutate(age_range <- cut(attrition$Age, 6)) %>%
-  ggplot(aes(fill = Attrition , x = cut(Age,4))) +
-  geom_bar(position = "fill")
+  ggplot(aes(fill = Attrition , x = cut(Age,4, labels=c("18-28", "29-39", "40-49", "50-60")))) +
+  geom_bar(position = "fill") +
+  labs(x = "Age range", y = "Proprotion of employees in age range")
+```
+
+
+```{r}
+attrition %>%
+  ggplot(aes(x=YearsAtCompany)) +
+  geom_density()
 ```
 
 ```{r}
 #a different look at years at company and attrition
 attrition %>%
-  ggplot(aes(fill=Attrition, x=cut(YearsAtCompany, 4))) +
-  geom_bar(position = "fill")
+  ggplot(aes(fill=Attrition, x=cut(YearsAtCompany, c(-1,5,10,20,41), labels=c("0-5","6-10", "11-20", "21+")))) +
+  geom_bar(position = "fill") +
+  labs(x="Years at company", y="Proportion of employees in experience range")
 ```
 
 
@@ -115,7 +126,6 @@ attrition %>%
 ```{r}
 #work life balance vs attrition
 attrition %>%
-  # mutate(age_range <- cut(attrition$Age, 6)) %>%
   ggplot(aes(fill = Attrition, x = WorkLifeBalance)) +
   geom_bar(position = "fill")
 
@@ -128,7 +138,6 @@ attrition %>%
 
 ```{r}
 attrition %>%
-  # mutate(age_range <- cut(attrition$Age, 6)) %>%
   ggplot(aes(fill = Attrition, x = EnvironmentSatisfaction)) +
   geom_bar(position = "fill")
 
@@ -141,7 +150,6 @@ attrition %>%
 ```{r}
 #overtime vs attrition
 attrition %>%
-  # mutate(age_range <- cut(attrition$Age, 6)) %>%
   ggplot(aes(fill = Attrition, x = OverTime)) +
   geom_bar(position = "fill")
 
@@ -151,7 +159,7 @@ attrition %>%
 
 
 ```{r}
-#first we did a logistic regression model with the variables that we built exploratory plots of
+# first we did a logistic regression model with the variables that we built exploratory plots of
 
 set.seed(253)
 
@@ -171,7 +179,7 @@ summary(attrition_mod1) %>%
   select(`.rownames`, Estimate) %>% 
   mutate(exp_coef = exp(Estimate))
 
-#Those who worked overtime have 4.15 times the odds of attriting than those who don't work overtime. 
+# Those who worked overtime have 4.31 times the odds of attriting than those who don't work overtime. 
 ```
 
 ```{r}
@@ -180,18 +188,17 @@ confusionMatrix(data = predict(attrition_mod1, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#Accuracy rate of 84.9%... BUT it isn't much better than the No Information Rate (predicting these by chance) of 83.6%...
-#we care more about the sensitivity, which is the percentage of correct predictions that people would leave their job out of all of the people who did end up leaving their job
-#sensitivity is .13
-#therefore, this model does not seem very good
+# Accuracy rate of 84.9%... BUT it isn't much better than the No Information Rate (predicting these by chance) of 83.6%...
+# we care more about the sensitivity, which is the percentage of correct predictions that people would leave their job out of all of the people who did end up leaving their job
+# sensitivity is .13; therefore, this model does not seem very good
 
-#CV accuracy of 84.5%
+# CV accuracy of 84.5%
 attrition_mod1$results$Accuracy
 ```
 
 
 ```{r}
-#Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor, so they are meaningless in our model-building. 
+# Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor, so they are meaningless in our model-building. 
 
 set.seed(253)
 
@@ -218,22 +225,22 @@ summary(attrition_allvars) %>%
 confusionMatrix(data = predict(attrition_allvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
-#training Accuracy rate of 89% when the model fits all variables
-#No information rate of 83.6%, so this model is slightly better
-#sensitivity is a lot better than the previous model, at 50.9%
+# training Accuracy rate of 89% when the model fits all variables
+# No information rate of 83.6%, so this model is slightly better
+# sensitivity is a lot better than the previous model, at 50.9%
 
-#CV accuracy of 87.5%
+# CV accuracy of 87.5%
 attrition_allvars$results$Accuracy
 ```
 
 
 ```{r}
-#Now we made a variable importance plot to see what variables are most crucial to include in a model
+# Now we made a variable importance plot to see what variables are most crucial to include in a model
 vip(attrition_allvars$finalModel, num_features = 30, bar = FALSE)
 ```
 
 ```{r}
-#Ran a logistic regression model using the top 5 best variables as shown in the Importance plot above.
+# Ran a logistic regression model using the top 5 best variables as shown in the Importance plot above.
 set.seed(253)
 
 
@@ -253,10 +260,10 @@ confusionMatrix(data = predict(attrition_bestvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#training Accuracy of 83.87% when fit on the top 5 best models.  Practically the same as the No information rate though...
-#sensitivity is 11.2%... pretty bad...
+# training Accuracy of 83.87% when fit on the top 5 best models.  Practically the same as the No information rate though...
+# sensitivity is 11.2%... pretty bad...
 
-#CV accuracy is 84.5%
+# CV accuracy is 84.5%
 attrition_bestvars$results$Accuracy
 ```
 
@@ -264,7 +271,7 @@ attrition_bestvars$results$Accuracy
 
 
 ```{r}
-#now we try a lasso model, to see if it can penalize unimportant varibles and get the accuracy and sensitivity to be better
+# now we try a lasso model, to see if it can penalize unimportant variables and get the accuracy and sensitivity to be better
 set.seed(253)
 
 lambda_grid <- 10^seq(-4, 0, length = 100)
@@ -295,10 +302,11 @@ confusionMatrix(data = predict(attrition_lasso, type = "raw"),
 attrition_lasso$results %>%
   filter(lambda == attrition_lasso$bestTune$lambda)
 
-#training accuracy is 90.1% (an improvement from the NIR of 83.6%!)
-#sensitivity is 50.3%
+# training accuracy is 90.1% (an improvement from the NIR of 83.6%!)
+# sensitivity is 50.3%
 
-#CV accuracy is 88.1% with a lambda value of 0.0005336699	
+# CV accuracy is 88.1% with a lambda value of 0.0005336699	
+    # (Sebastian) Maybe this is outdated? I see training accuracy = 89.3%, sensitivity = 47.9%, lambda = .001233, and CV acc = 88.2%
 ```
 
 
@@ -312,13 +320,12 @@ attrition_lasso$results %>%
 
 
 #not sure why this is here...
-attrition_lasso$resample %>% 
-  summarize(avg_accuracy = mean(Accuracy))
-
+# attrition_lasso$resample %>% 
+#   summarize(avg_accuracy = mean(Accuracy))
 ```
 ```{r}
 #all vars lasso model with best lambda... but we don't rlly need this because it automatically chose the best lambda out of the range of lambdas in the model above... however, does just putting one value of lambda make it run faster? maybe we should keep this one instead..
-
+    # (Sebastian) I think using the above chunk is fine, it doesn't take too long and I feel like it's better practice to have the best l       lambda automatically be used rather than hard coding it
 attrition_lasso_best <- train(
     Attrition ~ .,
     data = attrition_train %>% select(-Over18, -StandardHours),
@@ -349,8 +356,10 @@ vip(attrition_lasso_best$finalModel, num_features = 30, bar = FALSE)
 
 
 
-```{r}
-#Classification Tree .... but the training accuracy is literally the same as the NIR and with the "best" cp value, it sorts ALL of the cases into the "No" category for attrition, so should we get rid of this?
+```{r, include=FALSE}
+# Classification Tree .... but the training accuracy is literally the same as the NIR and with the "best" cp value, it sorts ALL of the cases into the "No" category for attrition, so should we get rid of this?
+
+    # (Sebastian) probably best not to include it, I think we have plenty of plots and Lisa says specifically that we don't need to          include a bunch of plots, only the analysis that we found to be most important
 
 set.seed(253)
 
@@ -366,7 +375,7 @@ attrition_tree <- train(
 ```
 
 
-```{r}
+```{r, include=FALSE}
 attrition_tree$results%>%
   ggplot(aes(x = cp, y = Accuracy)) +
   geom_line()
@@ -375,12 +384,12 @@ attrition_tree$bestTune
 ```
 
 
-```{r}
+```{r, include=FALSE}
 confusionMatrix(data = predict(attrition_tree, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-#100 specificty??? 
+#100 specificty??? <- because the tree always predicts no
 ``` 
 
 ```{r}
