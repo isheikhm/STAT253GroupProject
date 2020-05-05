@@ -48,12 +48,9 @@ library(randomForest) #for bagging and random forests
 
 theme_set(theme_minimal())
 ```
-```{r, echo = FALSE}
-attrition <- read.csv("attrition.csv", fileEncoding="UTF-8-BOM")
-names(attrition)
 
-table(attrition$Attrition) %>%
-  prop.table()
+```{r, include=FALSE}
+attrition <- read.csv("attrition.csv", fileEncoding="UTF-8-BOM")
 
 #check if we have missing values..
 # attrition %>%
@@ -76,37 +73,47 @@ attrition_train <- training(attrition_split)
 attrition_test <- testing(attrition_split)
 ```
 
-1. Many people remain at their jobs for a long time, but some people inevitably end up quitting.  Wouldn't it be beneficial to be able to tell which potential (or current) employees have a higher likelihood of leaving the job, and which are likely to stay?
+Many people remain at their jobs for a long time, but some people inevitably end up quitting.  Wouldn't it be beneficial to be able to tell which potential (or current) employees have a higher likelihood of leaving the job, and which are likely to stay?
 
 This knowledge could be used by the employers for good.  For example, they could see what factors influence employee attrition that can be changed to better the employee's experience, such as whether or not the employee works overtime.  It could also be used for not so good reasons, if a model predicts that a potential employee is likely to quit, and that leads to them not even being considered for the job.
 
-We wanted to explore this more, to see if we could accurately predict whether or not an employee will leave their job.  We used Kaggle's Attrition Data, which contains data from 1470 pseudo-employees. In the original dataset, about 83.9% remained at their job, while 16.1% left their job. These percentages are shown in the plot below.
+We wanted to explore this more, to see if we could accurately predict whether or not an employee will leave their job.  We used Kaggle's (fictional) attrition dataset, which contains data from 1470 pseudo-employees. In the original dataset, about 83.9% of employees were replaced, while 16.1% resulted in attrition. These percentages are shown in the plot below.
 
 ```{r}
 ggplot(data = attrition, aes(x=Attrition)) +
   geom_bar(color = 'blue', fill = 'lightblue') +
   ggtitle("Employee Attrition in Full Dataset")
 ```
-To clean the data, we recoded the levels of the WorkLifeBalance and EnvironmentSatisfaction variables to be more meaningful to the viewer, rather than just easily-misinterperable numbers.
 
-We then tried to brainstorm what variables (out of the 35 in the attrition data) might be important predictors of whether or not an employee will quit their job.  We split the data into training and testing, and created exploratory plots of some of the variables using the training dataset.  A few variables that we thought would be important are summarized in the plots below: (STILL NEED TO LABEL AND DISCUSS)
 
-```{r}
+The dataset included 35 variables:
+
+```{r, echo=FALSE}
+names(attrition)
+```
+
+To clean the data, we recoded the levels of the WorkLifeBalance and EnvironmentSatisfaction variables to be more meaningful to the viewer, rather than just easily-misinterperable numbers. Originally these variables were coded as numbers 1-4, but we refactored them to take on their original values, e.g. "High" or "Good".
+
+We then tried to brainstorm what variables (out of the 35 in the attrition data) might be important predictors of whether or not an employee will quit their job.  We split the data into training and testing, and created exploratory plots of some of the variables using the training dataset.  A few variables that we thought would be important were `OverTime`, `YearsAtCompany`, `Age`, `WorkLifeBalance`, and `EnvironmentSatisfaction`. The relationships of these variables to `Attrition` are visualized below.
+
+```{r, echo=FALSE}
 attrition_train %>%
   # mutate(age_range <- cut(attrition$Age, 6)) %>%
   ggplot(aes(fill = Attrition , x = cut(Age,4, labels=c("18-28", "29-39", "40-49", "50-60")))) +
   geom_bar(position = "fill") +
-  labs(x = "Age range", y = "Proprotion of employees in age range")+
+  labs(x = "Age range", y = "% Attrition")+
   scale_fill_brewer(palette = "Blues")
 ```
-```{r}
+
+```{r, echo=FALSE}
 #overtime vs attrition
 attrition %>%
   ggplot(aes(fill = Attrition, x = OverTime)) +
   geom_bar(position = "fill")+
   scale_fill_brewer(palette = "Greens")
 ```
-```{r}
+
+```{r, echo=FALSE}
 #work life balance vs attrition
 attrition %>%
   ggplot(aes(fill = Attrition, x = WorkLifeBalance)) +
@@ -115,64 +122,22 @@ attrition %>%
 ```
 
 
-
-
-```{r, eval = FALSE}
-#summarise response variable (proportions)
-table(attrition_train$Attrition) %>%
-  prop.table()
-
-ggplot(data = attrition, aes(x=Attrition)) +
-  geom_bar(color = 'blue', fill = 'lightblue') +
-  ggtitle("Employee Attrition in Full Dataset")
-
-# From this plot we can see that in our training dataset, there are many more cases in which the employee stayed at their job than ones who left it.
-
-# In the proportion table, we can see that 16.4% of the cases were ones who attrited, while 83.6% of the cases remained at their job.
-```
-
-## Potential research question: What factors may lead a potential employee to attrite?
-
-
-```{r}
-attrition_train %>%
-  # mutate(age_range <- cut(attrition$Age, 6)) %>%
-  ggplot(aes(fill = Attrition , x = cut(Age,4, labels=c("18-28", "29-39", "40-49", "50-60")))) +
-  geom_bar(position = "fill") +
-  labs(x = "Age range", y = "Proprotion of employees in age range")
-```
-
-
-```{r}
+```{r, include=FALSE}
 attrition %>%
   ggplot(aes(x=YearsAtCompany)) +
   geom_density()
 ```
 
-```{r}
+```{r, echo=FALSE}
 #a different look at years at company and attrition
 attrition %>%
   ggplot(aes(fill=Attrition, x=cut(YearsAtCompany, c(-1,5,10,20,41), labels=c("0-5","6-10", "11-20", "21+")))) +
   geom_bar(position = "fill") +
-  labs(x="Years at company", y="Proportion of employees in experience range")
+  labs(x="Years at company", y="% Attrition")
 ```
 
-
-
-```{r}
-#work life balance vs attrition
-attrition %>%
-  ggplot(aes(fill = Attrition, x = WorkLifeBalance)) +
-  geom_bar(position = "fill")
-
-#WorkLifeBalance 
-#1 'Bad'
-#2 'Good'
-#3 'Better'
-#4 'Best'
-```
-
-```{r}
+```{r, echo=FALSE}
+# environment satisfactions vs attrition
 attrition %>%
   ggplot(aes(fill = Attrition, x = EnvironmentSatisfaction)) +
   geom_bar(position = "fill")
@@ -183,20 +148,9 @@ attrition %>%
 #4 'Very High'
 ```
 
-```{r}
-#overtime vs attrition
-attrition %>%
-  ggplot(aes(fill = Attrition, x = OverTime)) +
-  geom_bar(position = "fill")
-
-#potentially use in model
-```
-
-
+The first model we built was a logistic regression model using these variables (`OverTime`, `YearsAtCompany`, `Age`, `WorkLifeBalance`, and `EnvironmentSatisfaction`) that we initially suspected to have an influence on attrition rates.
 
 ```{r}
-# first we did a logistic regression model with the variables that we built exploratory plots of
-
 set.seed(253)
 
 attrition_mod1 <- train(
@@ -208,7 +162,9 @@ attrition_mod1 <- train(
     metric = "Accuracy",
     na.action = na.omit
 )
+```
 
+```{r, echo=FALSE}
 summary(attrition_mod1) %>% 
   coef() %>% 
   tidy() %>% 
@@ -218,7 +174,11 @@ summary(attrition_mod1) %>%
 # Those who worked overtime have 4.31 times the odds of attriting than those who don't work overtime. 
 ```
 
-```{r}
+We can interpret the exponentiated coefficients of this model as multipliers to the odds of an employee leaving resulting in attrition. For example, the exponentiated coefficient on the `OverTimeYes` variable of 4.308 means that employees who worked overtime have their odds of leaving resulting in attrition multiplied by 4.308 compared to employees who did not work overtime.
+
+To evaluate this model, we looked at the accuracy rate, as well as the sensitivity and specificty. This model had an accuracy rate of 84.9%. This appears good at first glance, but it is very close to the no information rate (the rate at which a correct guess can be made with no information) of the data, which is 83.6%. Additionally, we see that the sensitivity is 14.2% and the specificity is 98.7%. This means that the model is mostly guessing no attrition for every case and getting the actual no attrition cases right almost all the time and the actual attrition cases wrong almost all the time. We want our model to be able to detect attrition, so this isn't what we want in our model.
+
+```{r, echo=FALSE}
 
 confusionMatrix(data = predict(attrition_mod1, type = "raw"),
                 reference = attrition_train$Attrition, 
