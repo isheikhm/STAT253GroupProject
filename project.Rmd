@@ -418,9 +418,6 @@ Model | Accuracy | Specificity | CV acc
 **Model 4** | 0.8931 | 0.97442 | 0.882
 **Model 5** | 0.896 | 0.8416008 | 0.8416008
 
-Comments:
-
-Should we make a table using all the results? This would reduce the code we have and we can use the kable function that she mentioned. I included all the valeus from the previous five models so we can make a nice table -- Ikran 
 
 
 1st model:
