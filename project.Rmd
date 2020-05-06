@@ -1,6 +1,6 @@
 ---
 title: "STATT253 Group Project"
-author: "Ikran, Colleen, Sebastian, Amritha"
+author: "Ikran, Colleen, Sebastian, Amritha" 
 date: "4/21/2020"
 output: html_document
 ---
