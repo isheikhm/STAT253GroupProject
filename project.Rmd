@@ -407,12 +407,20 @@ attrition_train %>%
 ```
 
 #MSE
- 
+
+>Conclusion 
+
+Model | Accuracy | Specificity | CV acc 
+------------- | ------------- | ------------- | ------------- 
+**Model 1** | 0.8484 | 0.98721 | 0.8416292 
+**Model 2** | 0.897 | 0.8785603 | 0.8785603 
+**Model 3** | 0.8397 | 0.8416008 | 0.8416008 
+**Model 4** | 0.8931 | 0.97442 | 0.882
+**Model 5** | 0.896 | 0.8416008 | 0.8416008
 
 Comments:
 
 Should we make a table using all the results? This would reduce the code we have and we can use the kable function that she mentioned. I included all the valeus from the previous five models so we can make a nice table -- Ikran 
-
 
 
 1st model:
@@ -434,6 +442,8 @@ CV acc: 0.8416008
 
 4th model: 
 Accuracy:0.8931
+Specificity: 0.97442
+Cv acc: 0.882
 Best tune lambda: 0.001232847
 Best tune accuracy: 0.8824485
 
