@@ -73,11 +73,14 @@ attrition_train <- training(attrition_split)
 attrition_test <- testing(attrition_split)
 ```
 
+
+>*Employee Attrition: Why do people leave their jobs?*
+
 Many people remain at their jobs for a long time, but some people inevitably end up quitting.  Wouldn't it be beneficial to be able to tell which potential (or current) employees have a higher likelihood of leaving the job, and which are likely to stay?
 
 This knowledge could be used by the employers for good.  For example, they could see what factors influence employee attrition that can be changed to better the employee's experience, such as whether or not the employee works overtime.  It could also be used for not so good reasons, if a model predicts that a potential employee is likely to quit, and that leads to them not even being considered for the job.
 
-We wanted to explore this more, to see if we could accurately predict whether or not an employee will leave their job.  We used Kaggle's (fictional) attrition dataset, which contains data from 1470 pseudo-employees. In the original dataset, about 83.9% of employees were replaced, while 16.1% resulted in attrition. These percentages are shown in the plot below.
+We wanted to explore this more, to see if we could accurately predict whether or not an employee will leave their job.  We used Kaggle's (fictional) attrition dataset, which contains data from 1470 employees. In the original dataset, about 83.9% of employees were replaced, while 16.1% resulted in attrition. These percentages are shown in the plot below.
 
 ```{r}
 ggplot(data = attrition, aes(x=Attrition)) +
@@ -92,7 +95,12 @@ The dataset included 35 variables:
 names(attrition)
 ```
 
+>Data Cleaning
+
 To clean the data, we recoded the levels of the WorkLifeBalance and EnvironmentSatisfaction variables to be more meaningful to the viewer, rather than just easily-misinterperable numbers. Originally these variables were coded as numbers 1-4, but we refactored them to take on their original values, e.g. "High" or "Good".
+
+
+>Our hypothesis
 
 We then tried to brainstorm what variables (out of the 35 in the attrition data) might be important predictors of whether or not an employee will quit their job.  We split the data into training and testing, and created exploratory plots of some of the variables using the training dataset.  A few variables that we thought would be important were `OverTime`, `YearsAtCompany`, `Age`, `WorkLifeBalance`, and `EnvironmentSatisfaction`. The relationships of these variables to `Attrition` are visualized below.
 
@@ -102,7 +110,7 @@ attrition_train %>%
   ggplot(aes(fill = Attrition , x = cut(Age,4, labels=c("18-28", "29-39", "40-49", "50-60")))) +
   geom_bar(position = "fill") +
   labs(x = "Age range", y = "% Attrition")+
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "Blues") 
 ```
 
 ```{r, echo=FALSE}
@@ -150,6 +158,8 @@ attrition %>%
 
 The first model we built was a logistic regression model using these variables (`OverTime`, `YearsAtCompany`, `Age`, `WorkLifeBalance`, and `EnvironmentSatisfaction`) that we initially suspected to have an influence on attrition rates.
 
+
+*1st model*
 ```{r}
 set.seed(253)
 
@@ -176,6 +186,9 @@ summary(attrition_mod1) %>%
 
 We can interpret the exponentiated coefficients of this model as multipliers to the odds of an employee leaving resulting in attrition. For example, the exponentiated coefficient on the `OverTimeYes` variable of 4.308 means that employees who worked overtime have their odds of leaving resulting in attrition multiplied by 4.308 compared to employees who did not work overtime.
 
+
+>Model Evaluation
+
 To evaluate this model, we looked at the accuracy rate, as well as the sensitivity and specificty. This model had an accuracy rate of 84.9%. This appears good at first glance, but it is very close to the no information rate (the rate at which a correct guess can be made with no information) of the data, which is 83.6%. Additionally, we see that the sensitivity is 14.2% and the specificity is 98.7%. This means that the model is mostly guessing no attrition for every case and getting the actual no attrition cases right almost all the time and the actual attrition cases wrong almost all the time. We want our model to be able to detect attrition, so this isn't what we want in our model.
 
 ```{r, echo=FALSE}
@@ -192,9 +205,11 @@ confusionMatrix(data = predict(attrition_mod1, type = "raw"),
 attrition_mod1$results$Accuracy
 ```
 
+Our second model uses Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor, so they are meaningless in our model-building. 
 
+*2nd Model*
 ```{r}
-# Logistic Regression using all variables except Over18 and StandardHours. These two variables only have one factor, so they are meaningless in our model-building. 
+
 
 set.seed(253)
 
@@ -229,14 +244,16 @@ confusionMatrix(data = predict(attrition_allvars, type = "raw"),
 attrition_allvars$results$Accuracy
 ```
 
-
+Now we made a variable importance plot to see what variables are most crucial to include in a model.
 ```{r}
-# Now we made a variable importance plot to see what variables are most crucial to include in a model
 vip(attrition_allvars$finalModel, num_features = 30, bar = FALSE)
 ```
 
+
+Our third model uses logistic regression with the top 5 best variables as shown in the Importance plot above.
+
+*3rd model*
 ```{r}
-# Ran a logistic regression model using the top 5 best variables as shown in the Importance plot above.
 set.seed(253)
 
 
@@ -264,10 +281,10 @@ attrition_bestvars$results$Accuracy
 ```
 
 
+For our 4th model, lets try a lasso model to see if it can penalize unimportant variables and get a better accuracy and sensitivity.
 
-
+*4th model*
 ```{r}
-# now we try a lasso model, to see if it can penalize unimportant variables and get the accuracy and sensitivity to be better
 set.seed(253)
 
 lambda_grid <- 10^seq(-4, 0, length = 100)
@@ -284,7 +301,10 @@ attrition_lasso <- train(
     na.action = na.omit
 )
 
-attrition_lasso$results
+
+attrition_lasso$results %>% head()
+attrition_lasso$bestTune$lambda 
+
 ```
 
 #Potential best model
@@ -298,11 +318,10 @@ confusionMatrix(data = predict(attrition_lasso, type = "raw"),
 attrition_lasso$results %>%
   filter(lambda == attrition_lasso$bestTune$lambda)
 
-# training accuracy is 90.1% (an improvement from the NIR of 83.6%!)
-# sensitivity is 50.3%
+# training accuracy is 89.3% (an improvement from the NIR of 83.6%!)
+# sensitivity is 47.9%
 
-# CV accuracy is 88.1% with a lambda value of 0.0005336699	
-    # (Sebastian) Maybe this is outdated? I see training accuracy = 89.3%, sensitivity = 47.9%, lambda = .001233, and CV acc = 88.2%
+# CV accuracy is 88.2% with a lambda value of 0.001232847		
 ```
 
 
@@ -319,9 +338,11 @@ attrition_lasso$results %>%
 # attrition_lasso$resample %>% 
 #   summarize(avg_accuracy = mean(Accuracy))
 ```
+
+Now lets make another lasso model but with all variables, except Over18 and StandardHours, to see if this results in a difference accuracy.
+
+*5th Model*
 ```{r}
-#all vars lasso model with best lambda... but we don't rlly need this because it automatically chose the best lambda out of the range of lambdas in the model above... however, does just putting one value of lambda make it run faster? maybe we should keep this one instead..
-    # (Sebastian) I think using the above chunk is fine, it doesn't take too long and I feel like it's better practice to have the best l       lambda automatically be used rather than hard coding it
 attrition_lasso_best <- train(
     Attrition ~ .,
     data = attrition_train %>% select(-Over18, -StandardHours),
@@ -338,7 +359,8 @@ confusionMatrix(data = predict(attrition_lasso_best, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 ```
-EXAMINE LASSO COEFFICIENTS TO SEE WHICH SHRUNK TO 0
+
+Now we can examine which coefficiants aren't helpful and also look at which coefficiants are the most important. Do you see a difference from the previous importance plot?
 ```{r}
 coefficients(attrition_lasso$finalModel,0.0005336699)
 #DepartmentSales, EmployeeCount, JobLevel, MonthlyIncome, and PerformanceRating all shrunk to 0.
@@ -348,46 +370,12 @@ coefficients(attrition_lasso$finalModel,0.0005336699)
 vip(attrition_lasso_best$finalModel, num_features = 30, bar = FALSE)
 
 #interesting! different variables are the most important this time around... should we try a lasso model with only the top 6-10 important variables, because the others are kinda close to 0? What do you think?
+
+
 ```
 
 
-
-```{r, include=FALSE}
-# Classification Tree .... but the training accuracy is literally the same as the NIR and with the "best" cp value, it sorts ALL of the cases into the "No" category for attrition, so should we get rid of this?
-
-    # (Sebastian) probably best not to include it, I think we have plenty of plots and Lisa says specifically that we don't need to          include a bunch of plots, only the analysis that we found to be most important
-
-set.seed(253)
-
-attrition_tree <- train(
-  Attrition ~ .,
-  data = attrition_train %>% select(-Over18, -StandardHours),
-  method = "rpart",
-  tuneGrid = data.frame(cp = 10^seq(-4, -1 , length = 100)),
-  trControl = trainControl(method = "cv", number = 5),
-  metric = "Accuracy",
-  na.action = na.omit
-)
-```
-
-
-```{r, include=FALSE}
-attrition_tree$results%>%
-  ggplot(aes(x = cp, y = Accuracy)) +
-  geom_line()
-
-attrition_tree$bestTune
-```
-
-
-```{r, include=FALSE}
-confusionMatrix(data = predict(attrition_tree, type = "raw"),
-                reference = attrition_train$Attrition, 
-                positive = "Yes") 
-
-#100 specificty??? <- because the tree always predicts no
-``` 
-
+Do we need another classification tree? Don't want to delete until we all agree -Ikran
 ```{r}
 set.seed(253)
 
@@ -419,3 +407,40 @@ attrition_train %>%
 ```
 
 #MSE
+
+
+Comments:
+
+Should we make a table using all the results? This would reduce the code we have and we can use the kable function that she mentioned. I included all the valeus from the previous five models so we can make a nice table -- Ikran 
+
+
+
+1st model:
+Accuracy: 0.8484
+Specificity: 0.98721
+CV acc: 0.8416292
+
+
+2nd model: 
+Accuracy: 0.897
+Specificity: 0.8785603
+CV acc: 0.8785603
+
+3rd model: 
+Accuracy: 0.8397 
+Specificity: 0.8416008
+CV acc: 0.8416008
+
+
+4th model: 
+Accuracy:0.8931
+Best tune lambda: 0.001232847
+Best tune accuracy: 0.8824485
+
+
+5th model: 
+Accuracy: 0.896 
+Specificity: 0.8416008
+CV acc: 0.8416008
+
+
