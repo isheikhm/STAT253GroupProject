@@ -423,7 +423,16 @@ Model | Accuracy | Sensitivity | Specificity | CV acc
 
 To pick the final model that we want to use, we need to remember what the goal was of this model-building process: we want to predict who is most likely to attrite.  That is, who is most likely to leave their position and not be replaced?  The sensitivity will tell us that.  The model with the highest sensitivity is Model 2.  However, this model may be overfitting to the training data.  Model 5 has the second highest sensitivity.  We now fit Models 2 and 5 on the testing data to see which is the best:
 
-FIT ON TESTING DATA
+```{r}
+#Model 2
+confusionMatrix(data = predict(attrition_allvars, newdata = attrition_test, type = "raw"), reference = as.factor(attrition_test$Attrition), 
+                positive = "Yes")
+
+#Model 5
+confusionMatrix(data = predict(attrition_lasso_best, newdata = attrition_test, type = "raw"), reference = as.factor(attrition_test$Attrition), 
+                positive = "Yes")
+```
+Surprisingly, their sensitivities are the same! The accuracy on Model 5 is 0.8798 while the accuracy on Model 2 is 0.873, so we can choose Model 5 as our best model for the time being.
 
 
 ROUGH DRAFT OF CONCLUSION
