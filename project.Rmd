@@ -74,9 +74,9 @@ attrition_test <- testing(attrition_split)
 ```
 
 
->*Employee Attrition: Why do people leave their jobs?*
+>*Introduction*
 
-Many people remain at their jobs for a long time, but some people inevitably end up quitting.  Wouldn't it be beneficial to be able to tell which potential (or current) employees have a higher likelihood of leaving the job, and which are likely to stay?
+Many people remain at their jobs for a long time, but some people inevitably end up leaving.  Wouldn't it be beneficial to be able to tell which potential (or current) employees have a higher likelihood of leaving the job without being replaced, and which are likely to stay?
 
 This knowledge could be used by the employers for good.  For example, they could see what factors influence employee attrition that can be changed to better the employee's experience, such as whether or not the employee works overtime.  It could also be used for not so good reasons, if a model predicts that a potential employee is likely to quit, and that leads to them not even being considered for the job.
 
@@ -197,7 +197,7 @@ confusionMatrix(data = predict(attrition_mod1, type = "raw"),
                 positive = "Yes") 
 ```
 
-```{r, echo=FALSE}
+```{r, eval=FALSE}
 # Accuracy rate of 84.9%... BUT it isn't much better than the No Information Rate (predicting these by chance) of 83.6%...
 # we care more about the sensitivity, which is the percentage of correct predictions that people would leave their job out of all of the people who did end up leaving their job
 # sensitivity is .13; therefore, this model does not seem very good
@@ -210,8 +210,6 @@ Our second model uses Logistic Regression using all variables except Over18 and 
 
 ## 2nd Model
 ```{r}
-
-
 set.seed(253)
 
 # Perform logistic regression
@@ -238,10 +236,12 @@ confusionMatrix(data = predict(attrition_allvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 # This model has an Accuracy rate of 89% when the model fits all variables. Remember that the No information rate of 83.6%, so this model is slightly better. The sensitivity is  better than the previous model, at 50.9%.
-
+```
+```{r, eval = FALSE}
 # The CV accuracy of 87.5%.
 attrition_allvars$results$Accuracy
 ```
+
 
 This model has a training accuracy of 89.7% and a CV accuracy of 87.9%, an improvement from the previous model. Additionally, the sensitivity of this model is much higher at 51.5%. However, including almost all of the variables makes this model less intuitive. Additionally, it might make the model more prone to overfitting. In order to address this problem, let's look at what variables are the most crucial to include in this model by making a variable importance plot:
 
@@ -273,10 +273,12 @@ confusionMatrix(data = predict(attrition_bestvars, type = "raw"),
                 positive = "Yes") 
 
 #This model has a training Accuracy of 84.16% when fit on the top 5 best modelsPractically the same as the No information rate. The sensitivity is 11.2% which isn't good.
-
+```
+```{r, eval = FALSE}
 # The CV accuracy is 84.5%.
 attrition_bestvars$results$Accuracy
 ```
+
 
 The model ends up having only 84.2% training accuracy, 84.1% CV accuracy, and 13.0% sensitivity, which is similarly poor to our first model. Another method of trying to reduce the number of variables in a model is by using lasso to penalize having lots of variables. For our 4th model, we tried a lasso model to do this and also hopefully get better accuracy and sensitivity rates.
 
@@ -312,11 +314,12 @@ attrition_lasso$results %>%
   filter(lambda == attrition_lasso$bestTune$lambda)
 
 # The training accuracy for this model is 89.3% (an improvement from the NIR of 83.6%!) with a sensitivity is 47.9%.
-
+```
+```{r, eval = FALSE}
 # The CV accuracy is 88.2% with a lambda value of 0.001232847.		
-
 attrition_lasso$bestTune$lambda
 ```
+
 >Model Evaluation
 
 This model, using the best lambda (of 0.001232847) had an accuracy rate of 89.31%, which is noticeably higher than the No Information Rate. Most importantly for our model, the sensitivity is 47.9%, meaning, for all the people that truly attrite, we predict correctly 47.9% of the time. Ideally, we would want something higher still, but this sensitivity is much better than the sensitivities in our previous models (besides the all-variable one).
