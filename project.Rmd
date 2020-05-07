@@ -1,6 +1,6 @@
 ---
-title: "STATT253 Group Project"
-author: "Ikran, Colleen, Sebastian, Amritha" 
+title: "Employee Attrition: Why do people leave their jobs?"
+author: "Ikran, Colleen, Sebastian, Amritha-STAT253" 
 date: "4/21/2020"
 output: html_document
 ---
@@ -193,7 +193,7 @@ We can interpret the exponentiated coefficients of this model as multipliers to 
 
 To evaluate this model, we looked at the accuracy rate, as well as the sensitivity and specificty. This model had an accuracy rate of 84.9%. This appears good at first glance, but it is very close to the no information rate (the rate at which a correct guess can be made with no information) of the data, which is 83.6%. Additionally, we see that the sensitivity is 14.2% and the specificity is 98.7%. This means that the model is mostly guessing no attrition for every case and getting the actual no attrition cases right almost all the time and the actual attrition cases wrong almost all the time. We want our model to be able to detect attrition, so this isn't the best model for us.
 
-```{r, echo=FALSE}
+```{r}
 
 confusionMatrix(data = predict(attrition_mod1, type = "raw"),
                 reference = attrition_train$Attrition, 
@@ -234,15 +234,13 @@ summary(attrition_allvars) %>%
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 confusionMatrix(data = predict(attrition_allvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
-# training Accuracy rate of 89% when the model fits all variables
-# No information rate of 83.6%, so this model is slightly better
-# sensitivity is a lot better than the previous model, at 50.9%
+# This model has an Accuracy rate of 89% when the model fits all variables. Remember that the No information rate of 83.6%, so this model is slightly better. The sensitivity is  better than the previous model, at 50.9%.
 
-# CV accuracy of 87.5%
+# The CV accuracy of 87.5%.
 attrition_allvars$results$Accuracy
 ```
 
@@ -270,15 +268,14 @@ attrition_bestvars <- train(
 )
 ```
 
-```{r}
+```{r, eval=FALSE}
 confusionMatrix(data = predict(attrition_bestvars, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 
-# training Accuracy of 83.87% when fit on the top 5 best models.  Practically the same as the No information rate though...
-# sensitivity is 11.2%... pretty bad...
+#This model has a training Accuracy of 83.87% when fit on the top 5 best modelsPractically the same as the No information rate. The sensitivity is 11.2% which isn't good.
 
-# CV accuracy is 84.5%
+# The CV accuracy is 84.5%.
 attrition_bestvars$results$Accuracy
 ```
 
@@ -302,11 +299,11 @@ attrition_lasso <- train(
 )
 
 
-#attrition_lasso$results %>% head()
-#attrition_lasso$bestTune$lambda 
 
 ```
-```{r}
+
+
+```{r, eval=FALSE}
 #training accuracy
 confusionMatrix(data = predict(attrition_lasso, type = "raw"),
                 reference = attrition_train$Attrition, 
@@ -316,10 +313,9 @@ confusionMatrix(data = predict(attrition_lasso, type = "raw"),
 attrition_lasso$results %>%
   filter(lambda == attrition_lasso$bestTune$lambda)
 
-# training accuracy is 89.3% (an improvement from the NIR of 83.6%!)
-# sensitivity is 47.9%
+# The training accuracy for this model is 89.3% (an improvement from the NIR of 83.6%!) with a sensitivity is 47.9%.
 
-# CV accuracy is 88.2% with a lambda value of 0.001232847		
+# The CV accuracy is 88.2% with a lambda value of 0.001232847.		
 
 attrition_lasso$bestTune$lambda
 ```
@@ -352,7 +348,9 @@ attrition_lasso_best <- train(
     metric = "Accuracy",
     na.action = na.omit
 )
+```
 
+```{r, eval=FALSE}
 confusionMatrix(data = predict(attrition_lasso_best, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
@@ -361,57 +359,11 @@ This model, using the best lambda (of 0.001232847) had an accuracy rate of 89.6%
 
 
 
-Now we can examine which coefficiants aren't helpful and also look at which coefficiants are the most important. Do you see a difference from the previous importance plot? ((Do we need this?  If so, we might wanna make a 6th model, and that's kind of a lot of models...))
-```{r}
-coefficients(attrition_lasso$finalModel,0.0005336699)
-#DepartmentSales, EmployeeCount, JobLevel, MonthlyIncome, and PerformanceRating all shrunk to 0.
-
-
-#variable importance plot on lasso model with the best lambda
-vip(attrition_lasso_best$finalModel, num_features = 30, bar = FALSE)
-
-#interesting! different variables are the most important this time around... should we try a lasso model with only the top 6-10 important variables, because the others are kinda close to 0? What do you think?
-```
-
-
-
-Do we need another classification tree? Don't want to delete until we all agree -Ikran
-I agree, we can delete this - Colleen
-```{r}
-set.seed(253)
-
-attrition_tree_2 <- train(
-  Attrition ~ .,
-  data = attrition_train %>% select(-Over18, -StandardHours),
-  method = "rpart",
-  tuneGrid = data.frame(cp = 0.025),
-  trControl = trainControl(method = "cv", number = 5),
-  metric = "Accuracy",
-  na.action = na.omit
-)
-
-confusionMatrix(data = predict(attrition_tree_2, type = "raw"),
-                reference = attrition_train$Attrition, 
-                positive = "Yes") 
-
-attrition_train %>%
-  bind_cols(predict(attrition_tree_2, type = "prob")) %>%
-  mutate(Attrition_numeric = ifelse(Attrition == "Yes",1,0)) %>%
-  summarize(MSE = mean((Attrition_numeric-Yes)^2))
-#average squared error between actual and predicted probabilities
-
-
-attrition_train %>%
-  bind_cols(predict(attrition_tree_2, type = "prob")) %>%
-  ggplot(aes(x=Yes))+
-  geom_histogram()
-```
-
-#MSE
-
 >Conclusion 
 
-Model | Accuracy | Sensitivity | Specificity | CV acc 
+
+
+Model | Accuracy | Sensitivity | Specificity | CV Accuracy
 ---------------------- | ------------- | ------------- | ------------- | ------------- 
 **Model 1: Logistic Regression with Exploratory Variables** | 0.8484 | 0.14201 | 0.98721 | 0.8416292 
 **Model 2: Logistic Regression with All Variables** | 0.897 | 0.51479 | 0.8785603 | 0.8785603 
@@ -435,38 +387,9 @@ confusionMatrix(data = predict(attrition_lasso_best, newdata = attrition_test, t
 Surprisingly, their sensitivities are the same! The accuracy on Model 5 is 0.8798 while the accuracy on Model 2 is 0.873, so we can choose Model 5 as our best model for the time being.
 
 
-ROUGH DRAFT OF CONCLUSION
-In the future, we should keep trying to find a model with an even higher sensitivity, because the sensitivity is not "good" in any of these models, and we don't want to be making many inaccurate predictions about such an important issue.
+>Our thoughts
 
+In the future, we should keep trying to find a model with an even higher sensitivity, because the sensitivity is not "good" in any of these models, and we don't want to be making many inaccurate predictions about such an important issue. After running the models on the testing data we can conclude that Model 5 (a lasso model fitting all variables with a chosen lambda value) is the "best" model. 
 
-1st model:
-Accuracy: 0.8484
-Specificity: 0.98721
-CV acc: 0.8416292
-
-
-2nd model: 
-Accuracy: 0.897
-Specificity: 0.8785603
-CV acc: 0.8785603
-
-3rd model: 
-Accuracy: 0.8397 
-Specificity: 0.8416008
-CV acc: 0.8416008
-
-
-4th model: 
-Accuracy:0.8931
-Specificity: 0.97442
-Cv acc: 0.882
-Best tune lambda: 0.001232847
-Best tune accuracy: 0.8824485
-
-
-5th model: 
-Accuracy: 0.896 
-Specificity: 0.8416008
-CV acc: 0.8416008
 
 
