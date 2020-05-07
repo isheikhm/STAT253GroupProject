@@ -141,14 +141,16 @@ attrition %>%
 attrition %>%
   ggplot(aes(fill=Attrition, x=cut(YearsAtCompany, c(-1,5,10,20,41), labels=c("0-5","6-10", "11-20", "21+")))) +
   geom_bar(position = "fill") +
-  labs(x="Years at company", y="% Attrition")
+  labs(x="Years at company", y="% Attrition")+
+  scale_fill_brewer(palette = 7) 
 ```
 
 ```{r, echo=FALSE}
 # environment satisfactions vs attrition
 attrition %>%
   ggplot(aes(fill = Attrition, x = EnvironmentSatisfaction)) +
-  geom_bar(position = "fill")
+  geom_bar(position = "fill")+
+  scale_fill_brewer(palette = 11) 
 
 #1 'Low'
 #2 'Medium'
@@ -189,7 +191,7 @@ We can interpret the exponentiated coefficients of this model as multipliers to 
 
 >Model Evaluation
 
-To evaluate this model, we looked at the accuracy rate, as well as the sensitivity and specificty. This model had an accuracy rate of 84.9%. This appears good at first glance, but it is very close to the no information rate (the rate at which a correct guess can be made with no information) of the data, which is 83.6%. Additionally, we see that the sensitivity is 14.2% and the specificity is 98.7%. This means that the model is mostly guessing no attrition for every case and getting the actual no attrition cases right almost all the time and the actual attrition cases wrong almost all the time. We want our model to be able to detect attrition, so this isn't what we want in our model.
+To evaluate this model, we looked at the accuracy rate, as well as the sensitivity and specificty. This model had an accuracy rate of 84.9%. This appears good at first glance, but it is very close to the no information rate (the rate at which a correct guess can be made with no information) of the data, which is 83.6%. Additionally, we see that the sensitivity is 14.2% and the specificity is 98.7%. This means that the model is mostly guessing no attrition for every case and getting the actual no attrition cases right almost all the time and the actual attrition cases wrong almost all the time. We want our model to be able to detect attrition, so this isn't the best model for us.
 
 ```{r, echo=FALSE}
 
@@ -281,13 +283,11 @@ attrition_bestvars$results$Accuracy
 ```
 
 
-For our 4th model, lets try a lasso model to see if it can penalize unimportant variables and get a better accuracy and sensitivity.
+For our 4th model, we try a lasso model to see if it can penalize unimportant variables and get a better accuracy and sensitivity.
 
 *4th model*
 ```{r}
 set.seed(253)
-
-lambda_grid <- 10^seq(-4, 0, length = 100)
 
 attrition_lasso <- train(
     Attrition ~ .,
@@ -302,12 +302,10 @@ attrition_lasso <- train(
 )
 
 
-attrition_lasso$results %>% head()
-attrition_lasso$bestTune$lambda 
+#attrition_lasso$results %>% head()
+#attrition_lasso$bestTune$lambda 
 
 ```
-
-#Potential best model
 ```{r}
 #training accuracy
 confusionMatrix(data = predict(attrition_lasso, type = "raw"),
@@ -322,24 +320,24 @@ attrition_lasso$results %>%
 # sensitivity is 47.9%
 
 # CV accuracy is 88.2% with a lambda value of 0.001232847		
+
+attrition_lasso$bestTune$lambda
 ```
+>Model Evaluation
+
+This model, using the best lambda (of 0.001232847) had an accuracy rate of 89.31%, which is noticeably higher than the No Information Rate. Most importantly for our model, the sensitivity is 47.9%, meaning, for all the people that truly attrite, we predict correctly 47.9% of the time. Ideally, we would want something higher still, but this sensitivity is much better than the sensitivities in our previous models.
 
 
-
+The plot below of lambda versus Accuracy shows that Model 4 used the lambda value of 0.001232847, because it resulted in the highest accuracy.  However, what happens if we make a new LASSO model with a different lambda value?
 ```{r}
 #plot of lambda values versus accuracy
 attrition_lasso$results %>% 
   ggplot(aes(x = lambda, y = Accuracy)) +
   geom_line() +
   scale_x_log10() 
-
-
-#not sure why this is here...
-# attrition_lasso$resample %>% 
-#   summarize(avg_accuracy = mean(Accuracy))
 ```
 
-Now lets make another lasso model but with all variables, except Over18 and StandardHours, to see if this results in a difference accuracy.
+Now we try another lasso model with a lambda value of 0.0005336699, to see if this results in a better sensitivity, even if it is at the cost of the accuracy lowering a bit.
 
 *5th Model*
 ```{r}
@@ -359,8 +357,11 @@ confusionMatrix(data = predict(attrition_lasso_best, type = "raw"),
                 reference = attrition_train$Attrition, 
                 positive = "Yes") 
 ```
+This model, using the best lambda (of 0.001232847) had an accuracy rate of 89.6%.  The sensitivity also went up to 49.7%.  The specificity is at 97.4%, meaning that we predict the people who will remain in their positions almost perfectly.
 
-Now we can examine which coefficiants aren't helpful and also look at which coefficiants are the most important. Do you see a difference from the previous importance plot?
+
+
+Now we can examine which coefficiants aren't helpful and also look at which coefficiants are the most important. Do you see a difference from the previous importance plot? ((Do we need this?  If so, we might wanna make a 6th model, and that's kind of a lot of models...))
 ```{r}
 coefficients(attrition_lasso$finalModel,0.0005336699)
 #DepartmentSales, EmployeeCount, JobLevel, MonthlyIncome, and PerformanceRating all shrunk to 0.
@@ -370,12 +371,12 @@ coefficients(attrition_lasso$finalModel,0.0005336699)
 vip(attrition_lasso_best$finalModel, num_features = 30, bar = FALSE)
 
 #interesting! different variables are the most important this time around... should we try a lasso model with only the top 6-10 important variables, because the others are kinda close to 0? What do you think?
-
-
 ```
 
 
+
 Do we need another classification tree? Don't want to delete until we all agree -Ikran
+I agree, we can delete this - Colleen
 ```{r}
 set.seed(253)
 
@@ -411,13 +412,18 @@ attrition_train %>%
 >Conclusion 
 
 Model | Accuracy | Specificity | CV acc 
-------------- | ------------- | ------------- | ------------- 
-**Model 1** | 0.8484 | 0.98721 | 0.8416292 
-**Model 2** | 0.897 | 0.8785603 | 0.8785603 
-**Model 3** | 0.8397 | 0.8416008 | 0.8416008 
-**Model 4** | 0.8931 | 0.97442 | 0.882
-**Model 5** | 0.896 | 0.8416008 | 0.8416008
+---------------------- | ------------- | ------------- | ------------- 
+**Model 1: Logistic Regression with Exploratory Variables** | 0.8484 | 0.98721 | 0.8416292 
+**Model 2: Logistic Regression with All Variables** | 0.897 | 0.8785603 | 0.8785603 
+**Model 3: Logistic Regression with Most Important Variables** | 0.8397 | 0.8416008 | 0.8416008 
+**Model 4: LASSO with "Best" Lambda** | 0.8931 | 0.97442 | 0.882
+**Model 5: LASSO with Different Lambda** | 0.896 | 0.8416008 | 0.8416008
 
+
+ROUGH DRAFT OF CONCLUSION
+To pick the final model that we want to use, we need to remember what the goal was of this model-building process: we want to predict who is most likely to attrite.  That is, who is most likely to leave their position and not be replaced?  The sensitivity will tell us that.  The model with the highest sensitivity is ____, and therefore, is the best model.
+
+However, in the future, we should keep trying to find a model with an even higher sensitivity, because the sensitivity is not "good" in any of these models, and we don't want to be making many inaccurate predictions about such an important issue.
 
 
 1st model:
