@@ -411,19 +411,23 @@ attrition_train %>%
 
 >Conclusion 
 
-Model | Accuracy | Specificity | CV acc 
----------------------- | ------------- | ------------- | ------------- 
-**Model 1: Logistic Regression with Exploratory Variables** | 0.8484 | 0.98721 | 0.8416292 
-**Model 2: Logistic Regression with All Variables** | 0.897 | 0.8785603 | 0.8785603 
-**Model 3: Logistic Regression with Most Important Variables** | 0.8397 | 0.8416008 | 0.8416008 
-**Model 4: LASSO with "Best" Lambda** | 0.8931 | 0.97442 | 0.882
-**Model 5: LASSO with Different Lambda** | 0.896 | 0.8416008 | 0.8416008
+Model | Accuracy | Sensitivity | Specificity | CV acc 
+---------------------- | ------------- | ------------- | ------------- | ------------- 
+**Model 1: Logistic Regression with Exploratory Variables** | 0.8484 | 0.14201 | 0.98721 | 0.8416292 
+**Model 2: Logistic Regression with All Variables** | 0.897 | 0.51479 | 0.8785603 | 0.8785603 
+**Model 3: Logistic Regression with Most Important Variables** | 0.8397 | 0.13609 | 0.8416008 | 0.8416008 
+**Model 4: LASSO with "Best" Lambda** | 0.8931 | 0.47929 | 0.97442 | 0.882
+**Model 5: LASSO with Different Lambda** | 0.896 | 0.49704 | 0.8416008 | 0.8416008
+
+
+
+To pick the final model that we want to use, we need to remember what the goal was of this model-building process: we want to predict who is most likely to attrite.  That is, who is most likely to leave their position and not be replaced?  The sensitivity will tell us that.  The model with the highest sensitivity is Model 2.  However, this model may be overfitting to the training data.  Model 5 has the second highest sensitivity.  We now fit Models 2 and 5 on the testing data to see which is the best:
+
+FIT ON TESTING DATA
 
 
 ROUGH DRAFT OF CONCLUSION
-To pick the final model that we want to use, we need to remember what the goal was of this model-building process: we want to predict who is most likely to attrite.  That is, who is most likely to leave their position and not be replaced?  The sensitivity will tell us that.  The model with the highest sensitivity is ____, and therefore, is the best model.
-
-However, in the future, we should keep trying to find a model with an even higher sensitivity, because the sensitivity is not "good" in any of these models, and we don't want to be making many inaccurate predictions about such an important issue.
+In the future, we should keep trying to find a model with an even higher sensitivity, because the sensitivity is not "good" in any of these models, and we don't want to be making many inaccurate predictions about such an important issue.
 
 
 1st model:
